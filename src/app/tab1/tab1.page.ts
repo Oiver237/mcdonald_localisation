@@ -8,19 +8,25 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
   styleUrls: ['tab1.page.scss']
 })
 export class Tab1Page implements OnInit, OnDestroy {
-  map: any;
 
-  constructor(public http: HttpClient) { 
-   	// API Call
-    restaurantData: {
-      name: '';
-      slug: '';
+
+ 
+  map: any;
+  center: any;
+  markers: any;
+    restaurantData = {
+      name: '',
+      slug: '',
       geo: {
-        lat: '';
-        lng: '';
-      };
+        lat: '',
+        lng: ''
+      },
+
 
     }
+  constructor(public http: HttpClient) { 
+   	// API Call
+    let cityId = 60566;
 
 		let headers = new HttpHeaders({
 			'x-rapidapi-host': 'the-fork-the-spoon.p.rapidapi.com',
@@ -29,11 +35,44 @@ export class Tab1Page implements OnInit, OnDestroy {
 
 		});
     let options = { headers: headers };
-    this.readApi("/restaurants/v2/list?queryPlaceValueCityId=60566&pageSize=30&pageNumber=1", options).subscribe(data => {
-      console.log(data);
+    this.readApi("/restaurants/v2/list?queryPlaceValueCityId="+ cityId, options)
+      .subscribe((data: any) => {
+         console.log(data);
+        // this.restaurantData.name = data.data[0].name;
+        // this.restaurantData.slug = data.data[0].slug;
+        // this.restaurantData.geo.lat = data.data[0].geo.latitude;
+        // this.restaurantData.geo.lng = data.data[0].geo.longitude;
+        // console.log(this.restaurantData);
 
+        // // add marker for any restaurant using the api
+        // // latitude and longitude are strings, convert to number
+        // let lat = Number(this.restaurantData.geo.lat);
+        // let lng = Number(this.restaurantData.geo.lng);
+        
+        // let marker = Leaflet.marker([lat, lng]);
+        // marker.addTo(this.map);
+
+        // // style the marker
+        // marker.bindPopup(this.restaurantData.name);
+        // marker.openPopup();
+        // //image for the marker
+  
+
+for (let i = 0; i < data.data.length; i++) {  
+  let lat = Number(data.data[i].geo.latitude);
+  let lng = Number(data.data[i].geo.longitude);
+  let marker = Leaflet.marker([lat, lng]);
+  marker.addTo(this.map);
+  marker.bindPopup(data.data[i].name);
+  marker.openPopup();
+// image of the restaurant
+  let image = data.data[i].mainPhotoSrc;
+
+
+      }
     }
-    );
+      
+      );        console.log(this.restaurantData);
     
   }
 
@@ -46,6 +85,7 @@ export class Tab1Page implements OnInit, OnDestroy {
   /** Add map */
   ionViewDidEnter() {
     this.loadMap();
+
   }
 
   /** Load map */
@@ -55,8 +95,14 @@ export class Tab1Page implements OnInit, OnDestroy {
       attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
     }).addTo(this.map);
 
+    this.map.locate({setView: true, maxZoom: 18}).on('locationFound', (e: { latlng: { lat: number; lng: number; }; }) => {
+      console.log(e.latlng);
+     this.center = Leaflet.latLng([e.latlng.lat, e.latlng.lng]);
+     this.markers = Leaflet.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
+    }
+      )
     // add marker for any restaurant using the api
-  
+    this.getPosition()
     
   }
 
@@ -65,6 +111,16 @@ export class Tab1Page implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.map.remove();
   }
+
+  getPosition() {
+    navigator.geolocation.getCurrentPosition((position) => {
+      console.log(position.coords.latitude);
+      console.log(position.coords.longitude);
+    }, (error) => {
+      console.log(error);
+    });
+  }
+
 
   // fetch api fork and the spoon 
 
