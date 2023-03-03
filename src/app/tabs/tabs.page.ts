@@ -13,8 +13,5 @@ export class TabsPage {
     // call the getPosition of the tab1 page
 
 // call the getPosition of the tab1 page
-  getPosition() {
-    let tab1 = new Tab1Page(this.http);
-    tab1.getPosition();
-  }
+
 }

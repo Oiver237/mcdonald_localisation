@@ -1,5 +1,10 @@
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import * as Leaflet from 'leaflet';
+import { MongoClient } from 'mongodb';
+
+
+import { latLng, MapOptions, Map, marker, Marker } from 'leaflet';
+import * as L from 'leaflet';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 
@@ -22,9 +27,32 @@ interface Restaurant {
 })
 export class Tab1Page implements OnInit, OnDestroy {
 
+//  database = 'mongodb://localhost:27017';
+//  client = new MongoClient(this.database);
 
- private apiKey = 'BCI6EpYEvqjJ_w0OMJOMct0dfTlKNEk2atnP9CMmAa6v_YCQ52klccdw5rDR3KzeqMZOM2UxQzgAQ8VpD3aCK8q4lZWgYxvs0ZZPL-sJ2_S7D2seNEhRibe3QLzvY3Yx';
- private apiHost = 'https://api.yelp.com/v3/businesses/search?sort_by=best_match&limit=20';
+// // connect to the database
+// async connect() {
+//   await this.client.connect();
+//   console.log('Connected to database');
+// }
+
+// // use the database
+// async useDatabase() {
+//   const database = this.client.db('restaurant');
+//   console.log('Using database');
+
+//   // veriify if the collection exists
+//   const collections = await database.listCollections().toArray();
+//   console.log('Collections: ', collections);
+//   if (collections.length === 0) {
+//     console.log('Creating collection');
+//     await database.createCollection('restaurants');
+//   }else{
+//     console.log('Collection already exists');
+//   }
+// }
+
+  
   map: any;
  restaurants: Restaurant[] = [];
 
@@ -40,9 +68,11 @@ export class Tab1Page implements OnInit, OnDestroy {
 
 
     }
+  latitude!: number;
+  longitude!: number;
   constructor(public http: HttpClient) { 
    	// API Call
-    let cityId = 60566;
+    
 
 		let headers = new HttpHeaders({
 			'x-rapidapi-host': 'the-fork-the-spoon.p.rapidapi.com',
@@ -50,45 +80,10 @@ export class Tab1Page implements OnInit, OnDestroy {
 
 
 		});
-    let options = { headers: headers };
-//     this.readApi("/restaurants/v2/list?queryPlaceValueCityId="+ cityId, options)
-//       .subscribe((data: any) => {
-//          console.log(data);
-//         // this.restaurantData.name = data.data[0].name;
-//         // this.restaurantData.slug = data.data[0].slug;
-//         // this.restaurantData.geo.lat = data.data[0].geo.latitude;
-//         // this.restaurantData.geo.lng = data.data[0].geo.longitude;
-//         // console.log(this.restaurantData);
-
-//         // // add marker for any restaurant using the api
-//         // // latitude and longitude are strings, convert to number
-//         // let lat = Number(this.restaurantData.geo.lat);
-//         // let lng = Number(this.restaurantData.geo.lng);
-        
-//         // let marker = Leaflet.marker([lat, lng]);
-//         // marker.addTo(this.map);
-
-//         // // style the marker
-//         // marker.bindPopup(this.restaurantData.name);
-//         // marker.openPopup();
-//         // //image for the marker
-  
-
-// for (let i = 0; i < data.data.length; i++) {  
-//   let lat = Number(data.data[i].geo.latitude);
-//   let lng = Number(data.data[i].geo.longitude);
-//   let marker = Leaflet.marker([lat, lng]);
-//   marker.addTo(this.map);
-//   marker.bindPopup(data.data[i].name);
-//   marker.openPopup();
-// // image of the restaurant
-//   let image = data.data[i].mainPhotoSrc;
 
 
-//       }
-//     }
       
-      ;        console.log(this.restaurantData);
+      console.log(this.restaurantData);
     
   }
 
@@ -96,46 +91,63 @@ export class Tab1Page implements OnInit, OnDestroy {
     return this.http.get('https://the-fork-the-spoon.p.rapidapi.com' + Url, headers);
   }
 
-  ngOnInit() { this.getPosition() }
+  ngOnInit() { 
+    this.map = L.map('mapId').setView([44.837789, -0.57918], 13);
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+      maxZoom: 16
+    });
+    tileLayer.addTo(this.map); 
+    // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //   attribution: '© OpenStreetMap contributors'
+    // }).addTo(this.map);
+  }
   
   /** Add map */
   ionViewDidEnter() {
     this.loadMap();
     
+    
   }
 
+
+  getCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        this.latitude = position.coords.latitude;
+        this.longitude = position.coords.longitude;
+        this.showOnMap(this.latitude, this.longitude);
+      });
+    } else {
+      alert('Geolocation is not supported by this browser.');
+    }
+  }
+
+  showOnMap(latitude: any, longitude: any) {
+    if (this.markers) {
+      this.map.removeLayer(this.markers);
+    }
+    this.markers = L.marker([latitude, longitude], {icon: L.icon({ iconUrl: 'assets/marker-icon.png', iconSize: [50, 50] })}).addTo(this.map);
+    console.log(this.markers);
+    console.log(latitude, longitude);
+    this.map.setView([latitude, longitude], 13);
+    this.markers.bindPopup('You are here').openPopup();
+
+    this.map.locate({setView: true, maxZoom: 16}).on('locationFound', (e: { latlng: { lat: number; lng: number; }; }) => {
+      console.log(e.latlng);
+      this.getCurrentLocation();
+
+        
+    }), (err: any) => {
+      console.log(err);
+    }
+      
+
+  
+  }
   /** Load map */
   loadMap() {
-  //   this.map = Leaflet.map('mapId').setView([44.837789, -0.57918], 13);
-  //   Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  //     attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-  //   }).addTo(this.map);
-
-  //   this.map.locate({setView: true, maxZoom: 18}).on('locationFound', (e: { latlng: { lat: number; lng: number; }; }) => {
-  //     console.log(e.latlng);
-  //     this.getPosition()
-  //    this.markers = Leaflet.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
-  //   }
-  //     )
-  //   // add marker for any restaurant using the api
-   
-    
-  // }
-  this.map = Leaflet.map('mapId').setView([44.837789, -0.57918], 13);
-    const tileLayer = Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-      maxZoom: 16
-    });
-    tileLayer.addTo(this.map); 
-    this.map.locate({setView: true, maxZoom: 16}).on('locationFound', (e: { latlng: { lat: number; lng: number; }; }) => {
-    console.log(e.latlng);
-    this.getPosition()
-    this.markers = Leaflet.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
-  }, (err: any) => {
-    console.log(err);
-  }
-    )
-  // call getRestaurants() here
+ 
   this.getRestaurants(44.837789, -0.57918);
   }
  
@@ -157,7 +169,17 @@ export class Tab1Page implements OnInit, OnDestroy {
 for (let i = 0; i < data.data.length; i++) {  
   let lat = Number(data.data[i].geo.latitude);
   let lng = Number(data.data[i].geo.longitude);
-  let marker = Leaflet.marker([lat, lng]);
+  // custom violet marker
+  const myIcon = L.icon({
+    iconUrl: 'assets/leaf-red.png',
+    iconSize: [30, 30],
+    iconAnchor: [25, 50],
+    popupAnchor: [0, -50]
+  });
+
+  // add marker
+  const marker = L.marker([lat, lng], {icon: myIcon});
+
   marker.addTo(this.map);
   marker.bindPopup(data.data[i].name, data.data[i].mainPhotoSrc);
   marker.openPopup();
@@ -187,7 +209,7 @@ handleChange(event:any) {
   addMarkers(): void {
     for (let i = 0; i < this.restaurants.length; i++) {
       const restaurant = this.restaurants[i];
-      const marker = Leaflet.marker([restaurant.coordinates.latitude, restaurant.coordinates.longitude]);
+      const marker = L.marker([restaurant.coordinates.latitude, restaurant.coordinates.longitude]);
       marker.addTo(this.map).bindPopup(`<b>${restaurant.name}</b><br>${restaurant.location.address1}`);
     }
   }
@@ -197,13 +219,13 @@ handleChange(event:any) {
     this.map.remove();
   }
   addMarker(latitude:any, longitude:any, popup:any) {
-    Leaflet.marker([latitude, longitude]).addTo(this.map).bindPopup(popup);
+    L.marker([latitude, longitude]).addTo(this.map).bindPopup(popup);
   }
   getPosition() {
     navigator.geolocation.getCurrentPosition((position) => {
       console.log(position.coords.latitude);
       console.log(position.coords.longitude);
-      this.center = Leaflet.latLng([position.coords.latitude, position.coords.longitude]);
+      this.center = L.latLng([position.coords.latitude, position.coords.longitude]);
       this.addMarker(position.coords.latitude, position.coords.longitude, "Current Location");
     }, (error) => {
       console.log(error);
@@ -215,3 +237,4 @@ handleChange(event:any) {
 
 
 }
+

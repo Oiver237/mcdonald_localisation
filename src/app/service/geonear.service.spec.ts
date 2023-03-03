@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { YelpService } from './yelp.service';
+import { GeonearService } from './geonear.service';
 
-describe('YelpService', () => {
-  let service: YelpService;
+describe('GeonearService', () => {
+  let service: GeonearService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(YelpService);
+    service = TestBed.inject(GeonearService);
   });
 
   it('should be created', () => {
